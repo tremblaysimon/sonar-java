@@ -62,7 +62,8 @@ class A {
     Charset.forName("UTF-16LE"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.UTF_16LE}}
     Charset.forName("UnicodeLittleUnmarked"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.UTF_16LE}}
     Charset.forName("UTF-8"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.UTF_8}}
-    Charset.forName("UTF8"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.UTF_8}}
+    Charset.forName("utf-8"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.UTF_8}}
+    Charset.forName("iso-8859-1"); // Noncompliant {{Replace Charset.forName() call with StandardCharsets.ISO_8859_1}}
 
     org.apache.commons.codec.Charsets.toCharset("UTF-8"); // Noncompliant {{Replace Charsets.toCharset() call with StandardCharsets.UTF_8}} [[sc=5;ec=57]]
 

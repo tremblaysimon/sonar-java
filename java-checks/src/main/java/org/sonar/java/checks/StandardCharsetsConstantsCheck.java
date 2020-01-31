@@ -24,10 +24,14 @@ import com.google.common.collect.Iterables;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.sonar.check.Rule;
 import org.sonar.java.JavaVersionAwareVisitor;
 import org.sonar.java.checks.helpers.ConstantUtils;
@@ -97,12 +101,13 @@ public class StandardCharsetsConstantsCheck extends AbstractMethodDetection impl
   private static Map<String, String> createAliasToConstantNameMap() {
     ImmutableMap.Builder<String, String> constantNames = ImmutableMap.builder();
     for (Charset charset : STANDARD_CHARSETS) {
-      String constantName = charset.name().replace("-", "_");
-      constantNames.put(charset.name(), constantName);
-
+      String constantName = normalizeCharsetName(charset.name());
+      Set<String> aliases = new HashSet<>();
+      aliases.add(constantName);
       for (String alias : charset.aliases()) {
-        constantNames.put(alias, constantName);
+        aliases.add(normalizeCharsetName(alias));
       }
+      aliases.forEach(alias -> constantNames.put(alias, constantName));
     }
 
     return constantNames.build();
@@ -125,9 +130,9 @@ public class StandardCharsetsConstantsCheck extends AbstractMethodDetection impl
     Symbol symbol = identifierTree.symbol();
     if (symbol.isVariableSymbol() && symbol.owner().type().is("com.google.common.base.Charsets")) {
       String identifier = identifierTree.name();
-      String aliasedIdentifier = identifier.replace("_", "-");
-      if (STANDARD_CHARSETS.stream().anyMatch(c -> c.name().equals(aliasedIdentifier))) {
-        reportIssue(identifierTree, "Replace \"com.google.common.base.Charsets." + identifier + "\" with \"StandardCharsets." + identifier + "\".");
+      String constantName = ALIAS_TO_CONSTANT.get(normalizeCharsetName(identifier));
+      if (constantName != null) {
+        reportIssue(identifierTree, "Replace \"com.google.common.base.Charsets." + identifier + "\" with \"StandardCharsets." + constantName + "\".");
       }
     }
   }
@@ -259,11 +264,17 @@ public class StandardCharsetsConstantsCheck extends AbstractMethodDetection impl
 
   private static Optional<String> getConstantName(ExpressionTree argument) {
     String constantValue = ConstantUtils.resolveAsStringConstant(argument);
-    return Optional.ofNullable(ALIAS_TO_CONSTANT.get(constantValue));
+    return Optional.ofNullable(ALIAS_TO_CONSTANT.get(normalizeCharsetName(constantValue)));
   }
 
   @Override
   public boolean isCompatibleWithJavaVersion(JavaVersion version) {
     return version.isJava7Compatible();
   }
+
+  @Nullable
+  private static String normalizeCharsetName(@Nullable String name) {
+    return name != null ? name.replace("-", "_").toUpperCase(Locale.ROOT) : null;
+  }
+
 }
